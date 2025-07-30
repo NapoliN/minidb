@@ -4,3 +4,12 @@
 
 ## 機能
 coming soon...
+
+## ビルド
+g++11とcmakeが必要だよ
+```
+> mkdir build && cd build
+> cmake ..
+> cmake --build .
+./mydb
+```
