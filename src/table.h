@@ -1,6 +1,9 @@
 #include <vector>
 #include "row.h"
 
+/**
+ * Table class to manage a collection of Row objects.
+ */
 class Table {
     public:
     void insert(const Row& row) {
