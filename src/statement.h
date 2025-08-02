@@ -5,6 +5,9 @@
 enum class CommandType {
     INSERT,
     SELECT,
+    BEGIN_TRANSACTION,
+    COMMIT,
+    ROLLBACK,
 };
 
 struct Statement {

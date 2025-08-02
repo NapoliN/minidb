@@ -20,7 +20,15 @@ class Parser {
                 }
             } else if (cmd == "select") {
                 return Statement{CommandType::SELECT, 0, ""};
-            } else {
+            } else if (cmd == "begin") {
+                return Statement{CommandType::BEGIN_TRANSACTION, std::nullopt, std::nullopt};
+            } else if (cmd == "commit") {
+                return Statement{CommandType::COMMIT, std::nullopt, std::nullopt};
+            } else if (cmd == "rollback") {
+                return Statement{CommandType::ROLLBACK, std::nullopt, std::nullopt};
+            } 
+            
+            else {
                 return std::nullopt;
             }
         }

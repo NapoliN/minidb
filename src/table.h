@@ -1,3 +1,4 @@
+#pragma once
 #include <vector>
 #include "row.h"
 
@@ -6,12 +7,10 @@
  */
 class Table {
     public:
-    void insert(const Row& row) {
-        rows.push_back(row);
-    }
-    std::vector<Row> select_all() const {
-        return rows;
-    }
+    void insert(const Row& row);
+    std::vector<Row> select_all() const;
+    bool save(const std::string& filename) const;
+    bool load(const std::string& filename);
 
     private:
     std::vector<Row> rows;
