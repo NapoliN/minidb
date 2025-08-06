@@ -14,6 +14,9 @@ class Parser {
             parsertl::state_machine psm;
 
             // Terminal tokens
+            /**
+             * Command
+             */
             prule.token("INSERT");
             prule.token("SELECT");
             prule.token("BEGIN");
@@ -21,7 +24,21 @@ class Parser {
             prule.token("ROLLBACK");
 
             prule.token("WHERE");
+            /**
+             * Logical Operator Tokens
+             */
+            prule.token("AND");
+            prule.token("OR");
+            prule.token("NOT");
+
+            /**
+             * Operands Tokens
+             */
             prule.token("EQUAL");
+
+            /**
+             * Value and Identifier Tokens
+             */
             prule.token("VALUE");
             prule.token("IDENTIFIER");
             prule.token("NUMBER");
@@ -38,9 +55,19 @@ class Parser {
             auto cmd_commit = prule.push("commit_stmt", "COMMIT");
             auto cmd_rollback = prule.push("rollback_stmt", "ROLLBACK");
             auto clause_where = prule.push("where_clause", "WHERE condition");
+
+            
+            auto cond_or = prule.push("condition", "condition OR and_condition");
+            prule.push("condition", "and_condition");
+            auto cond_and = prule.push("and_condition", "and_condition AND not_condition");
+            prule.push("and_condition", "not_condition");
+            auto cond_not = prule.push("not_condition", "NOT not_condition");
+            prule.push("not_condition", "condition_atom");
+            prule.push("not_condition", "'(' condition ')'");
+
             prule.push("where_clause", ""); // Empty where clause is allowed
 
-            auto op_equal = prule.push("condition", "IDENTIFIER EQUAL value");
+            auto op_equal = prule.push("condition_atom", "IDENTIFIER EQUAL value");
             auto node_number = prule.push("value", "NUMBER");
             auto node_string = prule.push("value", "STRING");
 
@@ -68,6 +95,9 @@ class Parser {
              * clause tokens
              */
             lrules.push("where", prule.token_id("WHERE"));
+            lrules.push("and", prule.token_id("AND"));
+            lrules.push("or", prule.token_id("OR"));
+            lrules.push("not", prule.token_id("NOT"));
 
             lrules.push("\\s+", lrules.skip());
             lrules.push("[(]", prule.token_id("'('"));
@@ -121,8 +151,41 @@ class Parser {
                 
                 else if (rule_ == clause_where) {
                     stmt.condition = std::move(conditions_stack.back());
-
                     conditions_stack.pop_back();
+                }
+
+                else if (rule_ == cond_or) {
+                    // Combine conditions with OR
+                    auto right = std::move(conditions_stack.back());
+                    conditions_stack.pop_back();
+                    auto left = std::move(conditions_stack.back());
+                    conditions_stack.pop_back();
+                    
+                    // Create a new condition node that combines left and right
+                    auto or_condition = std::make_unique<OrCondition>(std::move(left), std::move(right));
+                    conditions_stack.push_back(std::move(or_condition));
+                }
+
+                else if (rule_ == cond_and) {
+                    // Combine conditions with AND
+                    auto right = std::move(conditions_stack.back());
+                    conditions_stack.pop_back();
+                    auto left = std::move(conditions_stack.back());
+                    conditions_stack.pop_back();
+                    
+                    // Create a new condition node that combines left and right
+                    auto and_condition = std::make_unique<AndCondition>(std::move(left), std::move(right));
+                    conditions_stack.push_back(std::move(and_condition));
+                }
+
+                else if (rule_ == cond_not) {
+                    // Negate the condition
+                    auto condition = std::move(conditions_stack.back());
+                    conditions_stack.pop_back();
+                    
+                    // Create a new condition node that negates the original condition
+                    auto not_condition = std::make_unique<NotCondition>(std::move(condition));
+                    conditions_stack.push_back(std::move(not_condition));
                 }
                 
                 else if (rule_ == op_equal) {

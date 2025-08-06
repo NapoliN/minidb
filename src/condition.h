@@ -34,6 +34,8 @@ struct LeafCondition : ConditionNode {
 
 struct AndCondition : ConditionNode {
     std::unique_ptr<ConditionNode> left, right;
+    AndCondition(std::unique_ptr<ConditionNode> left_, std::unique_ptr<ConditionNode> right_)
+        : left(std::move(left_)), right(std::move(right_)) {}
     bool eval(const Row& row) const override {
         return left->eval(row) && right->eval(row);
     }
@@ -41,7 +43,18 @@ struct AndCondition : ConditionNode {
 
 struct OrCondition : ConditionNode {
     std::unique_ptr<ConditionNode> left, right;
+    OrCondition(std::unique_ptr<ConditionNode> left_, std::unique_ptr<ConditionNode> right_)
+        : left(std::move(left_)), right(std::move(right_)) {}
     bool eval(const Row& row) const override {
         return left->eval(row) || right->eval(row);
+    }
+};
+
+struct NotCondition : ConditionNode {
+    std::unique_ptr<ConditionNode> condition;
+    NotCondition(std::unique_ptr<ConditionNode> condition_)
+        : condition(std::move(condition_)) {}
+    bool eval(const Row& row) const override {
+        return !condition->eval(row);
     }
 };
