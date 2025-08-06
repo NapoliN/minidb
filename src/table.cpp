@@ -1,4 +1,5 @@
 #include "table.h"
+#include <memory>
 #include <fstream>
 #include <sstream>
 
@@ -9,8 +10,27 @@ void Table::insert(const Row& row) {
     rows.push_back(row);
 }
 
-std::vector<Row> Table::select_all() const {
+/**
+ * Select all rows from the table.
+ * @return A vector containing all Row objects in the table.
+ */
+std::vector<Row> Table::select() const {
     return rows;
+}
+
+/**
+ * Select rows from the table based on a condition.
+ * @param condition The condition to filter rows.
+ * @return A vector containing Row objects that match the condition.
+ */
+std::vector<Row> Table::select(const std::unique_ptr<ConditionNode>& condition) const {
+    std::vector<Row> result;
+    for (const auto& row : rows) {
+        if (condition->eval(row)) {
+            result.push_back(row);
+        }
+    }
+    return result;
 }
 
 bool Table::save(const std::string& filename) const {

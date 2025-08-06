@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "condition.h"
 #include "row.h"
 
 /**
@@ -8,7 +9,8 @@
 class Table {
     public:
     void insert(const Row& row);
-    std::vector<Row> select_all() const;
+    std::vector<Row> select() const;
+    std::vector<Row> select(const std::unique_ptr<ConditionNode>& condition) const;
     bool save(const std::string& filename) const;
     bool load(const std::string& filename);
 

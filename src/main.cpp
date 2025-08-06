@@ -72,7 +72,12 @@ int main() {
                 }
                 break;
             case CommandType::SELECT:
-                rows = table.select_all();
+                if(stmt.condition.has_value()) {
+                    rows = table.select(stmt.condition.value());
+                }else {
+                    // If no condition is provided, select all rows
+                    rows = table.select();
+                }
                 // Transaction mode
                 if(current_transaction) {
                     // In transaction mode, we need to add the rows from the transaction buffer
