@@ -74,7 +74,7 @@ class Parser {
             lrules.push("[)]", prule.token_id("')'"));
             lrules.push(",", prule.token_id("','"));
             lrules.push("=", prule.token_id("EQUAL"));
-            
+
             /**
              * identifier and value tokens
              */
@@ -127,11 +127,12 @@ class Parser {
                 
                 else if (rule_ == op_equal) {
                     // Create a LeafCondition for the equal operation
-                    auto id = piter.dollar(0).str();
-                    auto value = piter.dollar(2).str();
+                    auto column_name = piter.dollar(0).str(); // get identifier
+                    auto value = values_stack.back();
+                    values_stack.pop_back();
                     std::unique_ptr<LeafCondition> leaf_condition = std::make_unique<LeafCondition>();
-                    leaf_condition->column = id; // Assuming we only support id for now
-                    leaf_condition->value = value.substr(1, value.length() - 2); // Remove quotes
+                    leaf_condition->column = column_name;
+                    leaf_condition->value = value;
                     leaf_condition->op = ConditionType::EQUAL;
                     
                     conditions_stack.emplace_back(std::move(leaf_condition));

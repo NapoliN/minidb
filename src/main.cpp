@@ -82,6 +82,9 @@ int main() {
                 if(current_transaction) {
                     // In transaction mode, we need to add the rows from the transaction buffer
                     for (const auto& row : current_transaction->get_inserted_rows()) {
+                        if(stmt.condition.has_value() && !stmt.condition.value()->eval(row)) {
+                            continue; // Skip rows that do not match the condition
+                        }
                         rows.push_back(row);
                     }
                 }
