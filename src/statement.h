@@ -20,5 +20,5 @@ struct Statement {
     std::optional<int> id;
     std::optional<std::string> name;
      // for select
-    std::optional<std::unique_ptr<ConditionNode>> condition;
+    std::optional<std::unique_ptr<ConditionNode>> condition = std::nullopt;
 };
