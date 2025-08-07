@@ -1,6 +1,7 @@
 #include <iostream>
 #include "parser.h"
 #include "transaction.h"
+#include "table.h"
 
 int main() {
     std::string input;
@@ -81,11 +82,26 @@ int main() {
                 // Transaction mode
                 if(current_transaction) {
                     // In transaction mode, we need to add the rows from the transaction buffer
-                    for (const auto& row : current_transaction->get_inserted_rows()) {
-                        if(stmt.condition.has_value() && !stmt.condition.value()->eval(row)) {
-                            continue; // Skip rows that do not match the condition
+                    for (const auto& [rowid, cv] : current_transaction->get_change_vectors()) {
+                        switch (cv.type) {
+                            case ChangeType::INSERT:
+                                if(stmt.condition.has_value() && !stmt.condition.value()->eval(cv.row)) {
+                                    continue; // Skip if condition does not match
+                                }
+                                rows.push_back(cv.row); // Add the inserted row
+                                break;
+                            case ChangeType::UPDATE:
+                                // Find the row to update
+                                auto it = std::find_if(rows.begin(), rows.end(), [&](const Row& r) { return std::to_string(r.id) == rowid; });
+                                if(stmt.condition.has_value() && !stmt.condition.value()->eval(cv.row)) {
+                                    continue; // Skip if condition does not match
+                                }
+                                if (it != rows.end()) {
+                                    *it = cv.row; // Update the row
+                                }
+                                break;
+                            // Handle other ChangeTypes if necessary
                         }
-                        rows.push_back(row);
                     }
                 }
 
@@ -109,24 +125,25 @@ int main() {
                     // If no condition is provided, select all rows
                     rows = table.select();
                 }
-                for (auto& row : rows) {
-                    
+                for (const auto& row : rows) {
+                    std::string rowid = std::to_string(row.id);
+                    Row update_row = row;
                     for (const auto& [column, value] : stmt.id_value_map) {
                         if (column == "id") {
-                            row.id = std::stoi(value);
+                            update_row.id = std::stoi(value);
                         }
                         else if (column == "name") {
-                            row.name = value;
+                            update_row.name = value;
                         }
                     }
                     // Transaction mode
                     if(current_transaction) {
-                        current_transaction->insert(row);
+                        current_transaction->update(rowid, update_row);
                     } else {
-                        table.insert(row);
-                        table.save("data.csv"); // Save after update
+                        table.update(rowid, update_row);
                     }
                 }
+                table.save("data.csv"); // Save after update
                 std::cout << rows.size() << " rows updated.\n";
                 break;
             }

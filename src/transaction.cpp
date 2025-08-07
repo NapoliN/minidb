@@ -1,4 +1,5 @@
 #include "transaction.h"
+#include "table.h"
 #include <algorithm>
 
 // TransactionManagerの実装
@@ -40,18 +41,32 @@ const std::vector<std::unique_ptr<Transaction>>& TransactionManager::get_active_
 // Transactionの実装
 
 void Transaction::insert(const Row& row) {
-    insert_buffer.push_back(row);
+    ChangeVector change_vector{ChangeType::INSERT, row};
+    change_vectors.insert({std::to_string(row.id), change_vector});
+}
+
+void Transaction::update(const std::string& rowid, const Row& row) {
+    ChangeVector change_vector{ChangeType::UPDATE, row};
+    change_vectors[rowid] = change_vector;
 }
 
 void Transaction::commit(Table& table) {
     // insert_buffer内の行をTableに反映
-    for (const auto& row : insert_buffer) {
-        table.insert(row);
+    for (const auto& [rowid, cv] : change_vectors) {
+        switch(cv.type) {
+            case ChangeType::INSERT:
+                table.insert(cv.row);
+                break;
+            case ChangeType::UPDATE:
+                table.update(rowid, cv.row);
+                break;
+            // 他のChangeTypeがあればここに追加
+        }
     }
     table.save("data.csv"); // Save after commit
-    insert_buffer.clear();
+    change_vectors.clear();
 }
 
 void Transaction::rollback() {
-    insert_buffer.clear();
+    change_vectors.clear();
 }

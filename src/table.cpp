@@ -33,6 +33,20 @@ std::vector<Row> Table::select(const std::unique_ptr<ConditionNode>& condition) 
     return result;
 }
 
+/**
+ * Update a row in the table identified by rowid.
+ * @param rowid The identifier of the row to update.
+ * @param row The new Row object to replace the existing one.
+ */
+void Table::update(std::string rowid, const Row& row) {
+    for (auto& existing_row : rows) {
+        if (std::to_string(existing_row.id) == rowid) {
+            existing_row = row; // Update the row
+            return;
+        }
+    }
+}
+
 bool Table::save(const std::string& filename) const {
     // Implementation for saving the table to a file
     std::ofstream file(filename);

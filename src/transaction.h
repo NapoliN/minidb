@@ -2,8 +2,20 @@
 #include "table.h"
 #include <vector>
 #include <memory>
+#include <unordered_map>
 
 class Transaction;
+
+enum class ChangeType {
+    INSERT,
+    UPDATE,
+    DELETE
+};
+
+struct ChangeVector {
+    ChangeType type;
+    Row row;
+};
 
 // TransactionManagerの責務：Transactionの生成・管理・削除
 class TransactionManager {
@@ -30,17 +42,21 @@ public:
     // トランザクションに行を挿入
     void insert(const Row& row);
 
+    // トランザクションの行をupdate
+    void update(const std::string& rowid, const Row& row);
+
     // トランザクションをコミットして、変更をテーブルに反映
     void commit(Table& table);
 
     // トランザクションをロールバック（バッファを破棄）
     void rollback();
 
-    std::vector<Row> get_inserted_rows() const {
-        return insert_buffer;
+    const std::unordered_map<std::string, ChangeVector>& get_change_vectors() const {
+        return change_vectors;
     }
 
 private:
-    // このトランザクションでinsertされた行のバッファ
-    std::vector<Row> insert_buffer;
+    // このトランザクションで変更された行のバッファ
+    std::unordered_map <std::string, ChangeVector> change_vectors;
 };
+
