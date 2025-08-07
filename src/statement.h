@@ -2,6 +2,8 @@
 #include <string>
 #include <optional>
 #include <memory>
+#include <unordered_map>
+
 #include "condition.h"
 
 enum class CommandType {

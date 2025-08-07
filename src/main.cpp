@@ -1,4 +1,6 @@
 #include <iostream>
+#include <algorithm>
+
 #include "parser.h"
 #include "transaction.h"
 #include "table.h"
