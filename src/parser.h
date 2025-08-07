@@ -19,6 +19,8 @@ class Parser {
              */
             prule.token("INSERT");
             prule.token("SELECT");
+            prule.token("UPDATE");
+            prule.token("SET");
             prule.token("BEGIN");
             prule.token("COMMIT");
             prule.token("ROLLBACK");
@@ -48,15 +50,30 @@ class Parser {
             prule.token("','");
 
             // Non-terminal rules
-            auto root = prule.push("command", "insert_stmt | select_stmt | begin_stmt | commit_stmt | rollback_stmt");
+            auto root = prule.push("command", "insert_stmt | select_stmt | update_stmt | begin_stmt | commit_stmt | rollback_stmt");
             auto cmd_insert = prule.push("insert_stmt", "INSERT '(' values ')'");
             auto cmd_select = prule.push("select_stmt", "SELECT where_clause");
             auto cmd_begin = prule.push("begin_stmt", "BEGIN");
             auto cmd_commit = prule.push("commit_stmt", "COMMIT");
             auto cmd_rollback = prule.push("rollback_stmt", "ROLLBACK");
+           
+            /**
+             * where clause rules
+             */
             auto clause_where = prule.push("where_clause", "WHERE condition");
+            prule.push("where_clause", ""); // Empty where clause is allowed
 
+            /**
+             * update statement rules
+             */
+            auto cmd_update = prule.push("update_stmt", "UPDATE SET update_values where_clause");
+            prule.push("update_values", "update_values ',' update_value"); 
+            prule.push("update_values", "update_value");
+            auto node_update = prule.push("update_value", "IDENTIFIER EQUAL value");
             
+            /**
+             * condition rules
+             */
             auto cond_or = prule.push("condition", "condition OR and_condition");
             prule.push("condition", "and_condition");
             auto cond_and = prule.push("and_condition", "and_condition AND not_condition");
@@ -65,7 +82,7 @@ class Parser {
             prule.push("not_condition", "condition_atom");
             prule.push("not_condition", "'(' condition ')'");
 
-            prule.push("where_clause", ""); // Empty where clause is allowed
+            
 
             auto op_equal = prule.push("condition_atom", "IDENTIFIER EQUAL value");
             auto node_number = prule.push("value", "NUMBER");
@@ -87,6 +104,8 @@ class Parser {
              */
             lrules.push("insert", prule.token_id("INSERT"));
             lrules.push("select", prule.token_id("SELECT"));
+            lrules.push("update", prule.token_id("UPDATE"));
+            lrules.push("set", prule.token_id("SET"));
             lrules.push("begin", prule.token_id("BEGIN"));
             lrules.push("commit", prule.token_id("COMMIT"));
             lrules.push("rollback", prule.token_id("ROLLBACK"));
@@ -98,6 +117,7 @@ class Parser {
             lrules.push("and", prule.token_id("AND"));
             lrules.push("or", prule.token_id("OR"));
             lrules.push("not", prule.token_id("NOT"));
+
 
             lrules.push("\\s+", lrules.skip());
             lrules.push("[(]", prule.token_id("'('"));
@@ -149,6 +169,18 @@ class Parser {
                     return stmt;
                 } 
                 
+                else if (rule_ == cmd_update) {
+                    stmt.type = CommandType::UPDATE;
+                    return stmt;
+                }
+                else if (rule_ == node_update) {
+                    auto column_name = piter.dollar(0).str(); // get identifier
+                    auto value = values_stack.back();
+                    values_stack.pop_back();
+
+                    stmt.id_value_map[column_name] = value; // Store the update value
+                }
+
                 else if (rule_ == clause_where) {
                     stmt.condition = std::move(conditions_stack.back());
                     conditions_stack.pop_back();

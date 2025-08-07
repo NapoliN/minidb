@@ -98,6 +98,38 @@ int main() {
                 }
 
                 break;
+            case CommandType::UPDATE: {
+                if (stmt.id_value_map.empty()) {
+                    std::cout << "Error: specify at least one column to update\n";
+                    break;
+                }
+                if(stmt.condition.has_value()){
+                    rows = table.select(stmt.condition.value());
+                }else{
+                    // If no condition is provided, select all rows
+                    rows = table.select();
+                }
+                for (auto& row : rows) {
+                    
+                    for (const auto& [column, value] : stmt.id_value_map) {
+                        if (column == "id") {
+                            row.id = std::stoi(value);
+                        }
+                        else if (column == "name") {
+                            row.name = value;
+                        }
+                    }
+                    // Transaction mode
+                    if(current_transaction) {
+                        current_transaction->insert(row);
+                    } else {
+                        table.insert(row);
+                        table.save("data.csv"); // Save after update
+                    }
+                }
+                std::cout << rows.size() << " rows updated.\n";
+                break;
+            }
             default:
                 std::cout << "Unknown command type\n";
                 break;
