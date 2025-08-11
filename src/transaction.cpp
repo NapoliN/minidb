@@ -50,6 +50,11 @@ void Transaction::update(const std::string& rowid, const Row& row) {
     change_vectors[rowid] = change_vector;
 }
 
+void Transaction::delete_(const std::string& rowid) {
+    ChangeVector change_vector{ChangeType::DELETE, Row{}}; // Empty row for delete
+    change_vectors[rowid] = change_vector;
+}
+
 void Transaction::commit(Table& table) {
     // insert_buffer内の行をTableに反映
     for (const auto& [rowid, cv] : change_vectors) {
@@ -60,7 +65,9 @@ void Transaction::commit(Table& table) {
             case ChangeType::UPDATE:
                 table.update(rowid, cv.row);
                 break;
-            // 他のChangeTypeがあればここに追加
+            case ChangeType::DELETE:
+                table.delete_(rowid);
+                break;
         }
     }
     table.save("data.csv"); // Save after commit

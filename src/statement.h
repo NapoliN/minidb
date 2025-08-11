@@ -10,6 +10,7 @@ enum class CommandType {
     INSERT,
     SELECT,
     UPDATE,
+    DELETE,
     BEGIN_TRANSACTION,
     COMMIT,
     ROLLBACK,

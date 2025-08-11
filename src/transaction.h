@@ -45,6 +45,9 @@ public:
     // トランザクションの行をupdate
     void update(const std::string& rowid, const Row& row);
 
+    // トランザクションの行を削除
+    void delete_(const std::string& rowid);
+
     // トランザクションをコミットして、変更をテーブルに反映
     void commit(Table& table);
 
@@ -57,6 +60,6 @@ public:
 
 private:
     // このトランザクションで変更された行のバッファ
-    std::unordered_map <std::string, ChangeVector> change_vectors;
+    std::unordered_map <std::string, ChangeVector> change_vectors = {}; // rowid -> ChangeVector
 };
 

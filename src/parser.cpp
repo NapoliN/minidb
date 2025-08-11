@@ -20,6 +20,7 @@ std::optional<Statement> Parser::parse(const std::string& input) {
     prule.token("INSERT");
     prule.token("SELECT");
     prule.token("UPDATE");
+    prule.token("DELETE");
     prule.token("SET");
     prule.token("BEGIN");
     prule.token("COMMIT");
@@ -50,9 +51,10 @@ std::optional<Statement> Parser::parse(const std::string& input) {
     prule.token("','");
 
     // Non-terminal rules
-    auto root = prule.push("command", "insert_stmt | select_stmt | update_stmt | begin_stmt | commit_stmt | rollback_stmt");
+    auto root = prule.push("command", "insert_stmt | select_stmt | update_stmt | delete_stmt | begin_stmt | commit_stmt | rollback_stmt");
     auto cmd_insert = prule.push("insert_stmt", "INSERT '(' values ')'");
     auto cmd_select = prule.push("select_stmt", "SELECT where_clause");
+    auto cmd_delete = prule.push("delete_stmt", "DELETE where_clause");
     auto cmd_begin = prule.push("begin_stmt", "BEGIN");
     auto cmd_commit = prule.push("commit_stmt", "COMMIT");
     auto cmd_rollback = prule.push("rollback_stmt", "ROLLBACK");
@@ -100,6 +102,7 @@ std::optional<Statement> Parser::parse(const std::string& input) {
     lrules.push("insert", prule.token_id("INSERT"));
     lrules.push("select", prule.token_id("SELECT"));
     lrules.push("update", prule.token_id("UPDATE"));
+    lrules.push("delete", prule.token_id("DELETE"));
     lrules.push("set", prule.token_id("SET"));
     lrules.push("begin", prule.token_id("BEGIN"));
     lrules.push("commit", prule.token_id("COMMIT"));
@@ -155,7 +158,12 @@ std::optional<Statement> Parser::parse(const std::string& input) {
         else if (rule_ == cmd_select) {
             stmt.type = CommandType::SELECT;
             return stmt;
-        } else if (rule_ == cmd_begin) {
+        } 
+        else if (rule_ == cmd_delete) {
+            stmt.type = CommandType::DELETE;
+            return stmt;
+        }
+        else if (rule_ == cmd_begin) {
             stmt.type = CommandType::BEGIN_TRANSACTION;
             return stmt;
         } else if (rule_ == cmd_commit) {

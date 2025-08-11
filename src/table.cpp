@@ -1,4 +1,5 @@
 #include "table.h"
+#include <algorithm>
 #include <memory>
 #include <fstream>
 #include <sstream>
@@ -47,6 +48,18 @@ void Table::update(std::string rowid, const Row& row) {
             existing_row = row; // Update the row
             return;
         }
+    }
+}
+
+/**
+ * Delete a row from the table identified by rowid.
+ * @param rowid The identifier of the row to delete.
+ */
+void Table::delete_(std::string rowid) {
+    auto it = std::remove_if(rows.begin(), rows.end(),
+        [&rowid](const Row& r) { return std::to_string(r.id) == rowid; });
+    if (it != rows.end()) {
+        rows.erase(it, rows.end()); // Remove the row
     }
 }
 

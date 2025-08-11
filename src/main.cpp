@@ -31,7 +31,7 @@ int main() {
         // if transaction is inactive and command is table manipulation, we create a implicit transaction.
         // so current transaction can not be nullptr when executing table manipulation.
         bool implicit_transaction = false;
-        if (!current_transaction && (stmt.type == CommandType::INSERT || stmt.type == CommandType::UPDATE || stmt.type == CommandType::SELECT)) {
+        if (!current_transaction && (stmt.type == CommandType::INSERT || stmt.type == CommandType::UPDATE || stmt.type == CommandType::SELECT || stmt.type == CommandType::DELETE)) {
             current_transaction = t_manager.begin();
             implicit_transaction = true;
         }
@@ -90,7 +90,7 @@ int main() {
                                 }
                                 rows.push_back(cv.row); // Add the inserted row
                                 break;
-                            case ChangeType::UPDATE:
+                            case ChangeType::UPDATE:{
                                 // Find the row to update
                                 auto it = std::find_if(rows.begin(), rows.end(), [&](const Row& r) { return std::to_string(r.id) == rowid; });
                                 if(stmt.condition && !stmt.condition->eval(cv.row)) {
@@ -100,6 +100,16 @@ int main() {
                                     *it = cv.row; // Update the row
                                 }
                                 break;
+                            }
+
+                            case ChangeType::DELETE: {
+                                auto it = std::remove_if(rows.begin(), rows.end(), [&](const Row& r) { return std::to_string(r.id) == rowid; });
+                                if (it != rows.end()) {
+                                    rows.erase(it, rows.end()); // Remove the deleted row
+                                }
+                                break;
+                            }
+
                             // Handle other ChangeTypes if necessary
                         }
                     }
@@ -135,6 +145,15 @@ int main() {
                     
                 }
                 std::cout << rows.size() << " rows updated.\n";
+                break;
+            }
+            case CommandType::DELETE: {
+                rows = table.select(stmt.condition);
+                for (const auto& row : rows) {
+                    std::string rowid = std::to_string(row.id);
+                    current_transaction->delete_(rowid);
+                }
+                std::cout << rows.size() << " rows deleted.\n";
                 break;
             }
             default:

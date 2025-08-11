@@ -12,6 +12,7 @@ class Table {
     std::vector<Row> select() const;
     std::vector<Row> select(const std::unique_ptr<ConditionNode>& condition) const;
     void update(std::string rowid, const Row& row);
+    void delete_(std::string rowid);
     bool save(const std::string& filename) const;
     bool load(const std::string& filename);
 
