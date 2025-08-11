@@ -23,7 +23,7 @@ struct Statement {
     std::optional<int> id;
     std::optional<std::string> name;
      // for select
-    std::optional<std::unique_ptr<ConditionNode>> condition = std::nullopt;
+    std::unique_ptr<ConditionNode> condition = nullptr;
 
     std::unordered_map<std::string, std::string> id_value_map;
 };

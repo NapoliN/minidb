@@ -24,6 +24,9 @@ std::vector<Row> Table::select() const {
  * @return A vector containing Row objects that match the condition.
  */
 std::vector<Row> Table::select(const std::unique_ptr<ConditionNode>& condition) const {
+    if(!condition) {
+        return rows; // If no condition is provided, return all rows
+    }
     std::vector<Row> result;
     for (const auto& row : rows) {
         if (condition->eval(row)) {

@@ -27,6 +27,16 @@ int main() {
         // Process the statement
         const auto& stmt = *stmt_opt;
         std::vector<Row> rows;
+
+        // if transaction is inactive and command is table manipulation, we create a implicit transaction.
+        // so current transaction can not be nullptr when executing table manipulation.
+        bool implicit_transaction = false;
+        if (!current_transaction && (stmt.type == CommandType::INSERT || stmt.type == CommandType::UPDATE || stmt.type == CommandType::SELECT)) {
+            current_transaction = t_manager.begin();
+            implicit_transaction = true;
+        }
+
+        
         switch (stmt.type) {
             case CommandType::BEGIN_TRANSACTION: {
                 if(current_transaction) {
@@ -61,33 +71,21 @@ int main() {
                 if (stmt.id && stmt.name) {
                     Row row{*stmt.id, *stmt.name};
                     // Transaction mode
-                    if(current_transaction){
-                        current_transaction->insert(row);
-                    }
-                    // Non-transaction mode
-                    else {
-                        table.insert(row);
-                        table.save("data.csv"); // Save after insert
-                    }
+                    current_transaction->insert(row);
                     std::cout << "Inserted row with id: " << *stmt.id << " and name: " << *stmt.name << "\n";
                 } else {
                     std::cout << "Error: Missing id or name for insert command\n";
                 }
                 break;
             case CommandType::SELECT:
-                if(stmt.condition.has_value()) {
-                    rows = table.select(stmt.condition.value());
-                }else {
-                    // If no condition is provided, select all rows
-                    rows = table.select();
-                }
+                rows = table.select(stmt.condition);
                 // Transaction mode
                 if(current_transaction) {
                     // In transaction mode, we need to add the rows from the transaction buffer
                     for (const auto& [rowid, cv] : current_transaction->get_change_vectors()) {
                         switch (cv.type) {
                             case ChangeType::INSERT:
-                                if(stmt.condition.has_value() && !stmt.condition.value()->eval(cv.row)) {
+                                if(stmt.condition && !stmt.condition->eval(cv.row)) {
                                     continue; // Skip if condition does not match
                                 }
                                 rows.push_back(cv.row); // Add the inserted row
@@ -95,7 +93,7 @@ int main() {
                             case ChangeType::UPDATE:
                                 // Find the row to update
                                 auto it = std::find_if(rows.begin(), rows.end(), [&](const Row& r) { return std::to_string(r.id) == rowid; });
-                                if(stmt.condition.has_value() && !stmt.condition.value()->eval(cv.row)) {
+                                if(stmt.condition && !stmt.condition->eval(cv.row)) {
                                     continue; // Skip if condition does not match
                                 }
                                 if (it != rows.end()) {
@@ -121,12 +119,7 @@ int main() {
                     std::cout << "Error: specify at least one column to update\n";
                     break;
                 }
-                if(stmt.condition.has_value()){
-                    rows = table.select(stmt.condition.value());
-                }else{
-                    // If no condition is provided, select all rows
-                    rows = table.select();
-                }
+                rows = table.select(stmt.condition);
                 for (const auto& row : rows) {
                     std::string rowid = std::to_string(row.id);
                     Row update_row = row;
@@ -138,20 +131,21 @@ int main() {
                             update_row.name = value;
                         }
                     }
-                    // Transaction mode
-                    if(current_transaction) {
-                        current_transaction->update(rowid, update_row);
-                    } else {
-                        table.update(rowid, update_row);
-                    }
+                    current_transaction->update(rowid, update_row);
+                    
                 }
-                table.save("data.csv"); // Save after update
                 std::cout << rows.size() << " rows updated.\n";
                 break;
             }
             default:
                 std::cout << "Unknown command type\n";
                 break;
+        }
+
+        // implicit transaction handling
+        if (implicit_transaction) {
+            t_manager.commit(current_transaction, table);
+            current_transaction = nullptr; // Reset current transaction after commit
         }
     }
     return 0;
